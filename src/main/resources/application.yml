@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: fulvis
+  datasource:
+    url: ${FULVIS_DB_URL:jdbc:postgresql://localhost:5432/fulvis}
+    username: ${FULVIS_DB_USERNAME:fulvis}
+    password: ${FULVIS_DB_PASSWORD:fulvis}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: ${FULVIS_SERVER_PORT:8080}
