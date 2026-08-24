@@ -1,7 +1,7 @@
 # Agent Task 005 - Implement Item Domain
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-18
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-21
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: dominio
 Rama sugerida: feature/item-domain
 Worktree sugerido: worktrees/fulvis-item-domain
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `004-implement-order-state-machine.md` en estado `Accepted`.
+
+Esta tarea implementa solo el agregado independiente `Item`. La coordinacion entre `Order` e `Item`, la transaccion, los puertos y el locking pesimista real quedan fuera de alcance y pertenecen a tareas posteriores de aplicacion y persistencia.
 
 ---
 
