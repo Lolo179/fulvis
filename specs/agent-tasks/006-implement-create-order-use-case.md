@@ -1,7 +1,7 @@
 # Agent Task 006 - Implement CreateOrderUseCase
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-18
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: aplicacion
 Rama sugerida: feature/create-order-use-case
 Worktree sugerido: worktrees/fulvis-create-order-use-case
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `005-implement-item-domain.md` en estado `Accepted`.
+
+Esta tarea implementa la orquestacion de aplicacion para crear pedidos, pero no implementa adaptadores REST, persistencia concreta ni locking pesimista real. La carga con lock queda expresada en el puerto `ItemRepositoryPort`.
 
 ---
 
