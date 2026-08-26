@@ -1,7 +1,7 @@
 # Agent Task 010 - Implement Error Model and REST Mapping
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-19
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: API
 Rama sugerida: feature/error-model-rest-mapping
 Worktree sugerido: worktrees/fulvis-error-model-rest-mapping
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `009-implement-get-order-use-case.md` en estado `Accepted`.
+
+Esta tarea implementa el modelo de error y el mapper REST, pero no crea endpoints completos ni contrato OpenAPI. La validacion de `X-Trace-Id` queda encapsulada en una pieza reutilizable del adaptador REST para que futuros controladores la apliquen antes de invocar casos de uso.
 
 ---
 
