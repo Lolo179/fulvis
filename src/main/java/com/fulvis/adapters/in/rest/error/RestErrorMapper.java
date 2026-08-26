@@ -8,6 +8,7 @@ import com.fulvis.domain.order.InvalidOrderLinesException;
 import com.fulvis.domain.order.InvalidOrderTransitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.util.Objects;
 
@@ -38,7 +39,9 @@ public class RestErrorMapper {
         if (error instanceof InsufficientStockException) {
             return new ErrorMapping(ConceptualErrorCode.InsufficientStock, HttpStatus.CONFLICT);
         }
-        if (error instanceof InvalidOrderLinesException || error instanceof IllegalArgumentException) {
+        if (error instanceof InvalidOrderLinesException
+                || error instanceof IllegalArgumentException
+                || error instanceof HttpMessageNotReadableException) {
             return new ErrorMapping(ConceptualErrorCode.InvalidOrderLines, HttpStatus.BAD_REQUEST);
         }
         if (error instanceof ConcurrencyConflictException) {
