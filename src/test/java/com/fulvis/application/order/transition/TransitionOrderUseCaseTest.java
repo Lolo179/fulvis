@@ -237,6 +237,11 @@ class TransitionOrderUseCaseTest {
         }
 
         @Override
+        public Optional<Item> findById(String itemId) {
+            return Optional.ofNullable(itemsById.get(itemId));
+        }
+
+        @Override
         public List<Item> findAllByIdsForUpdate(Collection<String> itemIds) {
             findAllCalls++;
             return itemIds.stream()
