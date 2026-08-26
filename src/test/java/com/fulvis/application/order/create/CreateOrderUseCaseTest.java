@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -116,6 +117,13 @@ class CreateOrderUseCaseTest {
     private static class FakeOrderRepository implements OrderRepositoryPort {
 
         private final List<Order> savedOrders = new ArrayList<>();
+
+        @Override
+        public Optional<Order> findById(String orderId) {
+            return savedOrders.stream()
+                    .filter(order -> order.id().equals(orderId))
+                    .findFirst();
+        }
 
         @Override
         public void save(Order order) {
