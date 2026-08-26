@@ -1,7 +1,7 @@
 # Agent Task 008 - Implement GetItemStockUseCase
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-18
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: aplicacion
 Rama sugerida: feature/get-item-stock-use-case
 Worktree sugerido: worktrees/fulvis-get-item-stock-use-case
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `007-implement-transition-order-use-case.md` en estado `Accepted`.
+
+Esta tarea implementa una consulta pura de aplicacion. No implementa adaptadores REST, persistencia concreta, cache, observabilidad ni contrato OpenAPI.
 
 ---
 
