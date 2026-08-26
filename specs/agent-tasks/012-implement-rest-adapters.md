@@ -1,7 +1,7 @@
 # Agent Task 012 - Implement REST Adapters
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-19
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: API
 Rama sugerida: feature/rest-adapters
 Worktree sugerido: worktrees/fulvis-rest-adapters
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `011-create-openapi-contract.md` en estado `Accepted`.
+
+Esta tarea implementa el borde REST delgado a partir del contrato OpenAPI. No implementa persistencia, wiring transaccional completo ni reglas de negocio.
 
 ---
 
