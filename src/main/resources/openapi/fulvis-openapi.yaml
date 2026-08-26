@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  title: Fulvis API
+  version: 0.1.0
+  description: Fulvis phase 1 REST contract.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create an order and reserve stock
+      parameters:
+        - $ref: '#/components/parameters/TraceIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /orders/{orderId}/transitions:
+    post:
+      operationId: transitionOrder
+      summary: Apply a business event to an order
+      parameters:
+        - $ref: '#/components/parameters/TraceIdHeader'
+        - $ref: '#/components/parameters/OrderIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionOrderRequest'
+      responses:
+        '200':
+          description: Transition applied or already satisfied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Get an order with lines and history
+      parameters:
+        - $ref: '#/components/parameters/TraceIdHeader'
+        - $ref: '#/components/parameters/OrderIdPath'
+      responses:
+        '200':
+          description: Order found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /items/{itemId}/stock:
+    get:
+      operationId: getItemStock
+      summary: Get item stock
+      parameters:
+        - $ref: '#/components/parameters/TraceIdHeader'
+        - $ref: '#/components/parameters/ItemIdPath'
+      responses:
+        '200':
+          description: Item stock found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetItemStockResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    TraceIdHeader:
+      name: X-Trace-Id
+      in: header
+      required: true
+      description: Operational trace identifier required for every external request.
+      schema:
+        type: string
+        minLength: 1
+      example: trace-123
+    OrderIdPath:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+      example: order-123
+    ItemIdPath:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+      example: item-123
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidOrderLines:
+              value:
+                error: InvalidOrderLines
+                message: Order contains invalid lines
+                traceId: trace-123
+            missingTraceId:
+              value:
+                error: MissingTraceId
+                message: X-Trace-Id header is required
+                traceId: missing
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            orderNotFound:
+              value:
+                error: OrderNotFound
+                message: Order not found
+                traceId: trace-123
+            itemNotFound:
+              value:
+                error: ItemNotFound
+                message: Item not found
+                traceId: trace-123
+    Conflict:
+      description: Business conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidTransition:
+              value:
+                error: InvalidOrderTransition
+                message: Order transition is not valid for the current status
+                traceId: trace-123
+            insufficientStock:
+              value:
+                error: InsufficientStock
+                message: Insufficient stock
+                traceId: trace-123
+            concurrencyConflict:
+              value:
+                error: ConcurrencyConflict
+                message: Concurrent update conflict
+                traceId: trace-123
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required:
+        - lines
+      additionalProperties: false
+      properties:
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CreateOrderLineRequest'
+    CreateOrderLineRequest:
+      type: object
+      required:
+        - itemId
+        - quantity
+      additionalProperties: false
+      properties:
+        itemId:
+          type: string
+          minLength: 1
+          example: item-123
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+    CreateOrderResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - createdAt
+      additionalProperties: false
+      properties:
+        orderId:
+          type: string
+          example: order-123
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        createdAt:
+          type: string
+          format: date-time
+    TransitionOrderRequest:
+      type: object
+      required:
+        - event
+      additionalProperties: false
+      properties:
+        event:
+          $ref: '#/components/schemas/OrderEvent'
+    TransitionOrderResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - occurredAt
+      additionalProperties: false
+      properties:
+        orderId:
+          type: string
+          example: order-123
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        occurredAt:
+          type: string
+          format: date-time
+    GetOrderResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - createdAt
+        - updatedAt
+        - lines
+        - history
+      additionalProperties: false
+      properties:
+        orderId:
+          type: string
+          example: order-123
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineResponse'
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderHistoryResponse'
+    OrderLineResponse:
+      type: object
+      required:
+        - itemId
+        - quantity
+      additionalProperties: false
+      properties:
+        itemId:
+          type: string
+          example: item-123
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+    OrderHistoryResponse:
+      type: object
+      required:
+        - previousStatus
+        - newStatus
+        - timestamp
+      additionalProperties: false
+      properties:
+        previousStatus:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/OrderStatus'
+        newStatus:
+          $ref: '#/components/schemas/OrderStatus'
+        timestamp:
+          type: string
+          format: date-time
+    GetItemStockResponse:
+      type: object
+      required:
+        - itemId
+        - stockTotal
+        - stockReserved
+        - stockAvailable
+      additionalProperties: false
+      properties:
+        itemId:
+          type: string
+          example: item-123
+        stockTotal:
+          type: integer
+          minimum: 0
+          example: 10
+        stockReserved:
+          type: integer
+          minimum: 0
+          example: 2
+        stockAvailable:
+          type: integer
+          minimum: 0
+          example: 8
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - traceId
+      additionalProperties: false
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          minLength: 1
+        traceId:
+          type: string
+          minLength: 1
+          example: trace-123
+    OrderStatus:
+      type: string
+      enum:
+        - MANAGED
+        - IN_PREPARATION
+        - SHIPPED
+        - RECEIVED
+        - CLOSED
+        - CANCELLED
+    OrderEvent:
+      type: string
+      enum:
+        - START_PREPARATION
+        - MARK_SHIPPED
+        - CONFIRM_RECEPTION
+        - CLOSE
+        - CANCEL
+    ErrorCode:
+      type: string
+      enum:
+        - OrderNotFound
+        - ItemNotFound
+        - InvalidOrderTransition
+        - InsufficientStock
+        - InvalidOrderLines
+        - ConcurrencyConflict
+        - MissingTraceId

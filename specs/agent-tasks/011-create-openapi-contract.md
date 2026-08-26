@@ -1,7 +1,7 @@
 # Agent Task 011 - Create OpenAPI Contract
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-19
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: API
 Rama sugerida: feature/openapi-contract
 Worktree sugerido: worktrees/fulvis-openapi-contract
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `010-implement-error-model-and-rest-mapping.md` en estado `Accepted`.
+
+Esta tarea crea el contrato OpenAPI y una validacion automatica minima del contrato. No implementa controladores REST, generacion de codigo, publicacion externa ni adaptadores.
 
 ---
 
