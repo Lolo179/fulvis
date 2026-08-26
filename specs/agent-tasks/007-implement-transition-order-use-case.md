@@ -1,7 +1,7 @@
 # Agent Task 007 - Implement TransitionOrderUseCase
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-18
+**Estado:** Accepted  
+**Ultima revision:** 2026-08-26
 
 ---
 
@@ -14,6 +14,14 @@ Tipo: aplicacion
 Rama sugerida: feature/transition-order-use-case
 Worktree sugerido: worktrees/fulvis-transition-order-use-case
 ```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `006-implement-create-order-use-case.md` en estado `Accepted`.
+
+Esta tarea implementa la orquestacion de transiciones en aplicacion. El locking optimista real, el locking pesimista real y la traduccion de conflictos de persistencia quedan fuera de alcance y pertenecen a tareas posteriores de persistencia e integracion.
 
 ---
 
