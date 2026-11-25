@@ -15,14 +15,16 @@ public class Order {
     private Instant updatedAt;
     private final List<OrderLine> lines;
     private final List<OrderHistory> history;
+    private final Long version;
 
-    private Order(String id, OrderStatus status, Instant createdAt, Instant updatedAt, List<OrderLine> lines, List<OrderHistory> history) {
+    private Order(String id, OrderStatus status, Instant createdAt, Instant updatedAt, List<OrderLine> lines, List<OrderHistory> history, Long version) {
         this.id = requireText(id, "id");
         this.status = Objects.requireNonNull(status, "status must not be null");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
         this.lines = validateLines(lines);
         this.history = new ArrayList<>(Objects.requireNonNull(history, "history must not be null"));
+        this.version = version;
     }
 
     public static Order create(String id, List<OrderLine> lines, Instant createdAt) {
@@ -33,8 +35,21 @@ public class Order {
                 createdAt,
                 createdAt,
                 lines,
-                List.of(new OrderHistory(null, OrderStatus.MANAGED, createdAt))
+                List.of(new OrderHistory(null, OrderStatus.MANAGED, createdAt)),
+                null
         );
+    }
+
+    public static Order rehydrate(
+            String id,
+            OrderStatus status,
+            Instant createdAt,
+            Instant updatedAt,
+            List<OrderLine> lines,
+            List<OrderHistory> history,
+            Long version
+    ) {
+        return new Order(id, status, createdAt, updatedAt, lines, history, version);
     }
 
     public void ensureCanApply(OrderTransitionRule rule) {
@@ -77,6 +92,10 @@ public class Order {
 
     public List<OrderHistory> history() {
         return List.copyOf(history);
+    }
+
+    public Long version() {
+        return version;
     }
 
     private void ensureHasLines() {

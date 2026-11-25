@@ -79,6 +79,11 @@ class GetOrderUseCaseTest {
 
     private static class FakeOrderRepository implements OrderRepositoryPort {
 
+        @Override
+        public void requireCurrentVersion(Order order) {
+            throw new AssertionError("Queries do not check an order version");
+        }
+
         private final Map<String, Order> ordersById = new LinkedHashMap<>();
         private final List<Order> savedOrders = new java.util.ArrayList<>();
         private int findByIdCalls;

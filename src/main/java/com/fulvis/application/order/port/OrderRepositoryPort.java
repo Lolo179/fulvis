@@ -8,5 +8,7 @@ public interface OrderRepositoryPort {
 
     Optional<Order> findById(String orderId);
 
+    void requireCurrentVersion(Order order);
+
     void save(Order order);
 }

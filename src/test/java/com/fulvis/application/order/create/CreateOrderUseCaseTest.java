@@ -116,6 +116,11 @@ class CreateOrderUseCaseTest {
 
     private static class FakeOrderRepository implements OrderRepositoryPort {
 
+        @Override
+        public void requireCurrentVersion(Order order) {
+            throw new AssertionError("Creation does not check an existing order version");
+        }
+
         private final List<Order> savedOrders = new ArrayList<>();
 
         @Override
