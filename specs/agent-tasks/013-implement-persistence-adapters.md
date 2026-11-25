@@ -1,7 +1,8 @@
 # Agent Task 013 - Implement Persistence Adapters
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-19
+**Estado:** Accepted
+
+**Ultima revision:** 2026-11-25
 
 ---
 
@@ -13,6 +14,29 @@ Objetivo: Implementar adaptadores de persistencia para OrderRepositoryPort e Ite
 Tipo: persistencia
 Rama sugerida: feature/persistence-adapters
 Worktree sugerido: worktrees/fulvis-persistence-adapters
+```
+
+---
+
+## Nota de Orden
+
+Esta tarea debe ejecutarse despues de `012-implement-rest-adapters.md` en estado `Accepted`.
+
+Tensiones detectadas antes de implementar:
+
+```text
+- Order necesita una puerta explicita de rehidratacion para que el adaptador de persistencia no use reflection ni replay artificial de historial.
+- Order necesita conservar un token de version persistente para que el locking optimista de ADR-002 sea real y no quede oculto por el adaptador.
+- La relectura de ADR-002 necesita una transaccion nueva despues del rollback de la escritura.
+```
+
+Decisiones tecnicas aplicadas:
+
+```text
+- La rehidratacion y version se incorporan al dominio como soporte tecnico del agregado, no como datos de negocio ni como contrato REST.
+- Las entidades JPA siguen viviendo solo en adapters/out/persistence.
+- stockAvailable sigue siendo derivado y no se persiste.
+- La tarea 013 cubre la recuperacion de conflictos de TransitionOrderUseCase. La 014 cubre el wiring general.
 ```
 
 ---
@@ -79,6 +103,9 @@ Quality gates:
 ```text
 - src/main/.../adapters/out/persistence/**
 - src/test/.../adapters/out/persistence/**
+- src/main/.../domain/order/Order.java y OrderTest.java solo para rehidratacion y token de version
+- src/main/.../application/order/{port,transition}/** y application/error/ConcurrencyConflictException.java solo para detectar y resolver el conflicto optimista de ADR-002
+- src/test/.../application/order/** para verificar ese ajuste y adaptar dobles al puerto
 - src/main/.../configuration/**
 - src/main/resources/db/**
 - src/main/resources/application*.yml
@@ -88,9 +115,8 @@ Quality gates:
 ### No puede modificar
 
 ```text
-- specs/**
-- src/main/.../domain/** salvo para usar tipos existentes sin cambiar decisiones
-- src/main/.../application/** salvo para implementar puertos ya definidos
+- specs/** salvo los metadatos de revision y alcance de esta ficha
+- src/main/.../domain/** y src/main/.../application/** fuera de lo autorizado arriba
 - src/main/.../adapters/in/rest/**
 - src/main/resources/openapi/**
 ```
@@ -280,3 +306,8 @@ El supervisor evaluara la tarea mediante:
 ```
 
 La revision humana debe centrarse en que la persistencia sea un adaptador, no el modelo de dominio real, y en que concurrencia y atomicidad queden verificadas por pruebas.
+
+## Historial de Cambios
+
+- 2026-11-25: La revision autoriza la rehidratacion y version de Order y la recuperacion del conflicto optimista de ADR-002 dentro de la 013. El wiring general sigue en la 014.
+- 2026-11-25: `mvn verify` paso 119 pruebas unitarias y 8 de integracion con PostgreSQL 18 y Testcontainers. La suite verifica concurrencia, rollback y conservacion de las filas de auditoria.

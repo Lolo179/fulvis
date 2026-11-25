@@ -13,6 +13,8 @@ import com.fulvis.domain.order.OrderLine;
 import com.fulvis.domain.order.OrderStateMachine;
 import com.fulvis.domain.order.OrderStatus;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -26,6 +28,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class TransitionOrderUseCaseTest {
 
@@ -104,6 +109,7 @@ class TransitionOrderUseCaseTest {
 
         assertThat(result.status()).isEqualTo(OrderStatus.IN_PREPARATION);
         assertThat(result.idempotent()).isTrue();
+        assertThat(result.occurredAt()).isEqualTo(order.updatedAt());
         assertThat(order.history()).hasSize(historySize);
         assertThat(orderRepository.savedOrders).isEmpty();
         assertThat(itemRepository.findAllCalls).isZero();
@@ -177,7 +183,9 @@ class TransitionOrderUseCaseTest {
     }
 
     private static TransitionOrderUseCase newUseCase(FakeOrderRepository orderRepository, FakeItemRepository itemRepository) {
-        return new TransitionOrderUseCase(orderRepository, itemRepository, new OrderStateMachine(), CLOCK);
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        when(transactionManager.getTransaction(any())).thenAnswer(invocation -> new SimpleTransactionStatus());
+        return new TransitionOrderUseCase(orderRepository, itemRepository, new OrderStateMachine(), CLOCK, transactionManager);
     }
 
     private static Order managedOrder() {
@@ -216,6 +224,10 @@ class TransitionOrderUseCaseTest {
         @Override
         public Optional<Order> findById(String orderId) {
             return Optional.ofNullable(ordersById.get(orderId));
+        }
+
+        @Override
+        public void requireCurrentVersion(Order order) {
         }
 
         @Override

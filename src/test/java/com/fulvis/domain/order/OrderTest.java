@@ -85,6 +85,27 @@ class OrderTest {
     }
 
     @Test
+    void givenPersistedStateWhenRehydratingOrderThenItRestoresStateWithoutAddingHistory() {
+        Order order = Order.rehydrate(
+                "order-123",
+                OrderStatus.IN_PREPARATION,
+                CREATED_AT,
+                OCCURRED_AT,
+                List.of(new OrderLine("item-123", 2)),
+                List.of(
+                        new OrderHistory(null, OrderStatus.MANAGED, CREATED_AT),
+                        new OrderHistory(OrderStatus.MANAGED, OrderStatus.IN_PREPARATION, OCCURRED_AT)
+                ),
+                7L
+        );
+
+        assertThat(order.status()).isEqualTo(OrderStatus.IN_PREPARATION);
+        assertThat(order.updatedAt()).isEqualTo(OCCURRED_AT);
+        assertThat(order.history()).hasSize(2);
+        assertThat(order.version()).isEqualTo(7L);
+    }
+
+    @Test
     void givenSameSourceAndTargetStatusWhenCreatingTransitionRuleThenItFails() {
         assertThatThrownBy(() -> new OrderTransitionRule(
                 OrderStatus.MANAGED,
