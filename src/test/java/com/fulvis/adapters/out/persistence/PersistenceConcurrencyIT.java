@@ -1,7 +1,6 @@
 package com.fulvis.adapters.out.persistence;
 
-import com.fulvis.adapters.out.persistence.item.ItemPersistenceAdapter;
-import com.fulvis.adapters.out.persistence.order.OrderPersistenceAdapter;
+import com.fulvis.FulvisApplication;
 import com.fulvis.application.error.ConcurrencyConflictException;
 import com.fulvis.application.order.create.CreateOrderCommand;
 import com.fulvis.application.order.create.CreateOrderLineCommand;
@@ -16,22 +15,24 @@ import com.fulvis.domain.order.Order;
 import com.fulvis.domain.order.OrderEvent;
 import com.fulvis.domain.order.OrderHistory;
 import com.fulvis.domain.order.OrderLine;
-import com.fulvis.domain.order.OrderStateMachine;
 import com.fulvis.domain.order.OrderStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -52,9 +53,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
-@SpringBootTest(classes = PersistenceConcurrencyIT.PersistenceTestConfiguration.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(classes = FulvisApplication.class)
+@Import(PersistenceConcurrencyIT.FixedClockConfiguration.class)
 class PersistenceConcurrencyIT {
 
     private static final String ITEM_ID = "item-1";
@@ -78,6 +84,8 @@ class PersistenceConcurrencyIT {
     private CreateOrderUseCase createOrder;
     @Autowired
     private TransitionOrderUseCase transitionOrder;
+    @Autowired
+    private WebApplicationContext webContext;
     @MockitoSpyBean
     private OrderRepositoryPort orders;
     @MockitoSpyBean
@@ -198,6 +206,49 @@ class PersistenceConcurrencyIT {
                 new OrderHistory(OrderStatus.MANAGED, OrderStatus.IN_PREPARATION, NOW));
     }
 
+    @Test
+    void givenApplicationWiringWhenCallingAllFourRoutesThenWritesCommitAndReadsUseReadOnlyTransactions() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(webContext).build();
+        String orderPath = mvc.perform(post("/orders").header("X-Trace-Id", "integration")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"lines":[{"itemId":"item-1","quantity":2}]}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+        assertThat(orderPath).startsWith("/orders/");
+
+        mvc.perform(post(orderPath + "/transitions").header("X-Trace-Id", "integration")
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"event":"CANCEL"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        doAnswer(invocation -> {
+            assertReadOnlyTransaction();
+            return invocation.callRealMethod();
+        }).when(orders).findById(orderPath.substring("/orders/".length()));
+        doAnswer(invocation -> {
+            assertReadOnlyTransaction();
+            return invocation.callRealMethod();
+        }).when(items).findById(ITEM_ID);
+
+        mvc.perform(get(orderPath).header("X-Trace-Id", "integration"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.history[1].newStatus").value("CANCELLED"))
+                .andExpect(jsonPath("$.lines[0].quantity").value(2));
+        mvc.perform(get("/items/{itemId}/stock", ITEM_ID).header("X-Trace-Id", "integration"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stockReserved").value(0))
+                .andExpect(jsonPath("$.stockAvailable").value(5));
+    }
+
+    private static void assertReadOnlyTransaction() {
+        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+        assertThat(TransactionSynchronizationManager.isCurrentTransactionReadOnly()).isTrue();
+    }
+
     private void synchronizeInitialReads(String orderId) {
         CountDownLatch reads = new CountDownLatch(2);
         AtomicInteger readCount = new AtomicInteger();
@@ -311,23 +362,13 @@ class PersistenceConcurrencyIT {
         return new CreateOrderCommand(List.of(new CreateOrderLineCommand(ITEM_ID, quantity)));
     }
 
-    @Configuration(proxyBeanMethods = false)
-    @EnableAutoConfiguration
-    @AutoConfigurationPackage
-    @Import({OrderPersistenceAdapter.class, ItemPersistenceAdapter.class})
-    static class PersistenceTestConfiguration {
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedClockConfiguration {
 
         @Bean
-        CreateOrderUseCase createOrderUseCase(OrderRepositoryPort orders, ItemRepositoryPort items) {
-            return new CreateOrderUseCase(orders, items, Clock.fixed(NOW, ZoneOffset.UTC));
-        }
-
-        @Bean
-        TransitionOrderUseCase transitionOrderUseCase(
-                OrderRepositoryPort orders, ItemRepositoryPort items, PlatformTransactionManager transactionManager
-        ) {
-            return new TransitionOrderUseCase(orders, items, new OrderStateMachine(),
-                    Clock.fixed(NOW, ZoneOffset.UTC), transactionManager);
+        @Primary
+        Clock fixedClock() {
+            return Clock.fixed(NOW, ZoneOffset.UTC);
         }
     }
 }
