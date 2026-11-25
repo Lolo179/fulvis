@@ -3,6 +3,7 @@ package com.fulvis.application.order.get;
 import com.fulvis.application.order.OrderNotFoundException;
 import com.fulvis.application.order.port.OrderRepositoryPort;
 import com.fulvis.domain.order.Order;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -14,6 +15,7 @@ public class GetOrderUseCase {
         this.orderRepository = Objects.requireNonNull(orderRepository, "orderRepository must not be null");
     }
 
+    @Transactional(readOnly = true)
     public GetOrderResult execute(String orderId) {
         if (orderId == null || orderId.isBlank()) {
             throw new IllegalArgumentException("orderId must not be blank");

@@ -1,7 +1,8 @@
 # Agent Task 014 - Implement Transaction Boundaries and Wiring
 
-**Estado:** Draft  
-**Ultima revision:** 2026-08-19
+**Estado:** Accepted
+
+**Ultima revision:** 2026-11-25
 
 ---
 
@@ -14,6 +15,8 @@ Tipo: aplicacion
 Rama sugerida: feature/transaction-boundaries-wiring
 Worktree sugerido: worktrees/fulvis-transaction-boundaries-wiring
 ```
+
+La tarea 013 deja el limite de escritura y recuperacion de `TransitionOrderUseCase` en aplicacion mediante `TransactionTemplate` de Spring. Esto permite capturar conflictos del commit antes de iniciar una nueva lectura, segun ADR-002.
 
 ---
 
@@ -272,3 +275,9 @@ El supervisor evaluara la tarea mediante:
 ```
 
 La revision humana debe centrarse en que la transaccion envuelva el caso de uso completo sin convertir controladores, repositorios o dominio en duenos de la unidad de negocio.
+
+## Validacion
+
+- `mvn verify` paso 121 pruebas unitarias y de arquitectura y 9 de integracion con PostgreSQL 18 y Testcontainers.
+- Se verificaron los cuatro endpoints con el contexto Spring de produccion, las transacciones de solo lectura y el rollback de creacion, cancelacion y envio.
+- La aplicacion valida el esquema existente al arrancar. Una base vacia requiere aplicar `db/schema.sql` antes del arranque.
